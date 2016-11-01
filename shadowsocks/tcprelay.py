@@ -92,13 +92,14 @@ BUF_SIZE = 32 * 1024
 
 class TCPRelayHandler(object):
     def __init__(self, server, fd_to_handlers, loop, local_sock, config,
-                 dns_resolver, is_local):
+                 block_pattern, dns_resolver, is_local):
         self._server = server
         self._fd_to_handlers = fd_to_handlers
         self._loop = loop
         self._local_sock = local_sock
         self._remote_sock = None
         self._config = config
+        self._block_pattern = block_pattern
         self._dns_resolver = dns_resolver
 
         # TCP Relay works as either sslocal or ssserver
@@ -286,7 +287,7 @@ class TCPRelayHandler(object):
                     logging.error('unknown command %d', cmd)
                     self.destroy()
                     return
-            header_result = parse_header(data)
+            header_result = parse_header(data, self._block_pattern)
             if header_result is None:
                 raise Exception('can not parse header')
             addrtype, remote_addr, remote_port, header_length = header_result
@@ -549,9 +550,10 @@ class TCPRelayHandler(object):
 
 
 class TCPRelay(object):
-    def __init__(self, config, dns_resolver, is_local, stat_callback=None):
+    def __init__(self, config, block_pattern, dns_resolver, is_local, stat_callback=None):
         self._config = config
         self._is_local = is_local
+        self._block_pattern = block_pattern
         self._dns_resolver = dns_resolver
         self._closed = False
         self._eventloop = None
@@ -674,7 +676,7 @@ class TCPRelay(object):
                 conn = self._server_socket.accept()
                 TCPRelayHandler(self, self._fd_to_handlers,
                                 self._eventloop, conn[0], self._config,
-                                self._dns_resolver, self._is_local)
+                                self._block_pattern, self._dns_resolver, self._is_local)
             except (OSError, IOError) as e:
                 error_no = eventloop.errno_from_exception(e)
                 if error_no in (errno.EAGAIN, errno.EINPROGRESS,

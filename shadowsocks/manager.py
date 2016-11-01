@@ -34,10 +34,11 @@ STAT_SEND_LIMIT = 100
 
 class Manager(object):
 
-    def __init__(self, config):
+    def __init__(self, config, block_pattern):
         self._config = config
         self._relays = {}  # (tcprelay, udprelay)
         self._loop = eventloop.EventLoop()
+	self._block_pattern = block_pattern
         self._dns_resolver = asyncdns.DNSResolver()
         self._dns_resolver.add_to_loop(self._loop)
 
@@ -85,9 +86,9 @@ class Manager(object):
                                                               port))
             return
         logging.info("adding server at %s:%d" % (config['server'], port))
-        t = tcprelay.TCPRelay(config, self._dns_resolver, False,
+        t = tcprelay.TCPRelay(config, self._block_pattern, self._dns_resolver, False,
                               self.stat_callback)
-        u = udprelay.UDPRelay(config, self._dns_resolver, False,
+        u = udprelay.UDPRelay(config, self._block_pattern, self._dns_resolver, False,
                               self.stat_callback)
         t.add_to_loop(self._loop)
         u.add_to_loop(self._loop)
@@ -188,8 +189,8 @@ class Manager(object):
         self._loop.run()
 
 
-def run(config):
-    Manager(config).run()
+def run(config, block_pattern):
+    Manager(config, block_pattern).run()
 
 
 def test():

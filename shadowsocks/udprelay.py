@@ -81,7 +81,7 @@ def client_key(source_addr, server_af):
 
 
 class UDPRelay(object):
-    def __init__(self, config, dns_resolver, is_local, stat_callback=None):
+    def __init__(self, config, block_pattern, dns_resolver, is_local, stat_callback=None):
         self._config = config
         if is_local:
             self._listen_addr = config['local_address']
@@ -93,6 +93,7 @@ class UDPRelay(object):
             self._listen_port = config['server_port']
             self._remote_addr = None
             self._remote_port = None
+        self._block_pattern = block_pattern
         self._dns_resolver = dns_resolver
         self._password = common.to_bytes(config['password'])
         self._method = config['method']
@@ -162,7 +163,7 @@ class UDPRelay(object):
             if not data:
                 logging.debug('UDP handle_server: data is empty after decrypt')
                 return
-        header_result = parse_header(data)
+        header_result = parse_header(data, self._block_pattern)
         if header_result is None:
             return
         addrtype, dest_addr, dest_port, header_length = header_result

@@ -139,7 +139,7 @@ def pack_addr(address):
     return b'\x03' + chr(len(address)) + address
 
 
-def parse_header(data):
+def parse_header(data, block_pattern):
     addrtype = ord(data[0])
     dest_addr = None
     dest_port = None
@@ -175,7 +175,14 @@ def parse_header(data):
                      'encryption method' % addrtype)
     if dest_addr is None:
         return None
-    return addrtype, to_bytes(dest_addr), dest_port, header_length
+
+    dest_addr = to_bytes(dest_addr)
+
+    if block_pattern.match(dest_addr) != None:
+        print('deny ' + dest_addr)
+        dest_addr = '127.0.0.1'
+
+    return addrtype, dest_addr, dest_port, header_length
 
 
 class IPNetwork(object):
